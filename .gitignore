@@ -1,0 +1,85 @@
+# Ignore everything by default; then allow only safe project files.
+*
+
+# Keep directory traversal so allowlist patterns can match files inside folders.
+!*/
+
+# Keep repository housekeeping files.
+!.gitignore
+!.gitattributes
+!.editorconfig
+!README
+!README.*
+!LICENSE
+!LICENSE.*
+
+# Keep markdown/docs (text-first).
+!**/*.md
+!**/*.mdx
+!**/*.rst
+
+# Keep source and config code files.
+!**/*.py
+!**/*.ipynb
+!**/*.html
+!**/*.sql
+!**/*.r
+!**/*.R
+!**/*.js
+!**/*.jsx
+!**/*.ts
+!**/*.tsx
+!**/*.java
+!**/*.c
+!**/*.cc
+!**/*.cpp
+!**/*.h
+!**/*.hpp
+!**/*.sh
+!**/*.ps1
+!**/*.bat
+!**/*.yml
+!**/*.yaml
+!**/*.json
+!**/*.toml
+!**/*.ini
+!**/*.cfg
+!**/*.gitkeep
+!**/*.env.example
+!Makefile
+!makefile
+
+# Always ignore local environments/caches/build artifacts.
+.git/
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+build/
+dist/
+pip-wheel-metadata/
+
+# Always ignore local runtime and OS junk.
+*.log
+*.tmp
+*.temp
+*.pid
+*.out
+*.orig
+*.sqlite
+*.sqlite3
+*.db
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE folders
+.vscode/
+.idea/
