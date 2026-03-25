@@ -121,11 +121,14 @@ Execution Quality Constraints:
 
 - Keep code modular and reproducible.
 - Explain every major decision in markdown.
+- Explain the cell outputs (results), charts in markdown.
 - Handle edge cases and failures gracefully.
 - Avoid data leakage.
 - Keep naming clean and professional.
 - Ensure outputs are stakeholder-friendly and technically correct.
-- Do not give impression of dummy univerisy project. Frame it as real world project deliverable (or stakeholder interaction).
+- Frame it as real world project deliverable (or stakeholder interaction).
+  - Do not give impression of dummy univerisy project.
+  - Do not frame in question answer style.
 
 Deliverables:
 
