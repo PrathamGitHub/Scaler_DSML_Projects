@@ -143,6 +143,12 @@ Deliverables:
 - "If model results are unstable, provide at least two alternative modeling strategies and compare."
 - "Create a final section: Risks, Assumptions, and Monitoring Plan."
 
+### After first run of all cells
+
+- Summarise the cell outputs or chats where needed.
+- Update the summary and insights after the first run to reflect the results of the cell.
+- Remove question-answer patterns, present as business insights.
+
 ---
 
 ## Quick Interview Prep: 30-second Version
