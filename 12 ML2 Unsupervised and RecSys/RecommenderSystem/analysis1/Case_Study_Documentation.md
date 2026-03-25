@@ -146,3 +146,13 @@
 2. Build hybrid recommender with content embeddings for cold start.
 3. Add post-ranking controls for diversity/freshness/exploration.
 4. Run controlled A/B tests for measurable business uplift.
+
+## 5) LinkedIn Project Section
+
+### Title
+
+Streaming Platform Recommender System: Personalized Movie Recommendations with Collaborative Filtering and SVD
+
+### Description
+
+Built an end-to-end movie recommendation system using 1M+ user-item interactions, demographic attributes, and genre metadata. Performed leakage-safe temporal validation, benchmarked global baseline, regularized bias model, user/item collaborative filtering, and matrix factorization, and compared models with RMSE and MAPE. In the first run, the regularized bias baseline achieved the best test performance (RMSE: 0.9652, MAPE: 0.2999), while user-based cosine provided an interpretable fallback and SVD showed high stability across seeds. Delivered business-ready insights on user segments, sparsity patterns, popularity concentration, and production rollout strategy.

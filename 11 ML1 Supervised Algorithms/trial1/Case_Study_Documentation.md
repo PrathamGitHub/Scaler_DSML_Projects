@@ -135,7 +135,7 @@ Deliverables:
 - Fully runnable notebook with markdown narrative.
 - Final summary table of key findings.
 - Clear next-step recommendations.
-- Document explaing the key technical detials for interview/ stakeholder meeting preparation
+- Document explaing the key technical detials for interview/ stakeholder meeting preparation. Document should include a section for LinkedIn project (title, description).
 
 ### Optional Add-on (for stricter outputs)
 

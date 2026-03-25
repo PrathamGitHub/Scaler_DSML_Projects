@@ -127,3 +127,13 @@ Risks:
 ## 11) Interview-Ready 30-Second Script
 
 "I translated Ad Ease's ad-optimization question into a multi-language forecasting pipeline. I started with robust quality checks and metadata extraction, then built leakage-safe train/validation/test splits. I benchmarked naive baselines against tuned ARIMA and weekly SARIMA/SARIMAX models using MAE, RMSE, R2, and sMAPE. The key finding is that model performance varies by language, so a language-specific model portfolio with active monitoring provides better operational reliability than one universal model."
+
+## 12) LinkedIn Project Section
+
+### Title
+
+Multi-Language Time Series Forecasting for Web Traffic: ARIMA and SARIMA Modeling for Ad Planning
+
+### Description
+
+Built an end-to-end time series forecasting solution for a global ad-tech use case to predict language-wise Wikipedia page views and improve campaign planning. Performed robust data quality checks, metadata parsing, and leakage-safe chronological train/validation/test splitting. Benchmarked naive, seasonal naive, and moving-average baselines against tuned ARIMA and weekly SARIMA/SARIMAX models using MAE, RMSE, R2, and sMAPE. Generated stakeholder-ready insights on trend, seasonality, and volatility, and recommended a language-specific model portfolio with monitoring and fallback rules to improve forecast reliability in production.
