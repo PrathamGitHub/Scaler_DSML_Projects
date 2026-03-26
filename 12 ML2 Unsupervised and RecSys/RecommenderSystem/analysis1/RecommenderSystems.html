@@ -16144,15 +16144,25 @@ Bias model (test): {&#39;RMSE&#39;: 0.9652078657563132, &#39;MAPE&#39;: 0.299914
 <span class="n">R</span> <span class="o">=</span> <span class="n">csr_matrix</span><span class="p">((</span><span class="n">vals</span><span class="p">,</span> <span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">)),</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">user_ids</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">movie_ids</span><span class="p">)))</span>
 <span class="n">R_dense</span> <span class="o">=</span> <span class="n">R</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span>
 
-<span class="c1"># Item-based Pearson (ratings centered by user mean)</span>
-<span class="n">user_mean_vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">R_dense</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">R_dense</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">((</span><span class="n">R_dense</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span> <span class="n">global_mean</span><span class="p">)</span>
+<span class="c1"># Item-based Pearson with overlap-aware shrinkage</span>
+<span class="n">rated_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">R_dense</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+<span class="n">co_counts</span> <span class="o">=</span> <span class="n">rated_mask</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">rated_mask</span>
+
+<span class="n">user_mean_vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+    <span class="n">rated_mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">R_dense</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">rated_mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span>
+    <span class="n">global_mean</span>
+<span class="p">)</span>
 <span class="n">R_centered</span> <span class="o">=</span> <span class="n">R_dense</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">R_centered</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
     <span class="n">mask</span> <span class="o">=</span> <span class="n">R_centered</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span>
     <span class="n">R_centered</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">R_centered</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">mask</span><span class="p">]</span> <span class="o">-</span> <span class="n">user_mean_vec</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
 
-<span class="n">item_corr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">corrcoef</span><span class="p">(</span><span class="n">R_centered</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
-<span class="n">item_corr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">item_corr</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+<span class="n">item_corr_raw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">corrcoef</span><span class="p">(</span><span class="n">R_centered</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+<span class="n">item_corr_raw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">item_corr_raw</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+<span class="n">shrink_lambda</span> <span class="o">=</span> <span class="mf">25.0</span>
+<span class="n">item_corr</span> <span class="o">=</span> <span class="n">item_corr_raw</span> <span class="o">*</span> <span class="p">(</span><span class="n">co_counts</span> <span class="o">/</span> <span class="p">(</span><span class="n">co_counts</span> <span class="o">+</span> <span class="n">shrink_lambda</span><span class="p">))</span>
+<span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="n">item_corr</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
 
 <span class="c1"># User-based Cosine similarity</span>
 <span class="n">user_cos</span> <span class="o">=</span> <span class="n">cosine_similarity</span><span class="p">(</span><span class="n">R</span><span class="p">)</span>
@@ -16206,7 +16216,7 @@ Bias model (test): {&#39;RMSE&#39;: 0.9652078657563132, &#39;MAPE&#39;: 0.299914
 <span class="k">def</span> <span class="nf">batch_predict</span><span class="p">(</span><span class="n">df_eval</span><span class="p">,</span> <span class="n">predictor</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">40</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">predictor</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">df_eval</span><span class="p">[</span><span class="s2">&quot;UserID&quot;</span><span class="p">],</span> <span class="n">df_eval</span><span class="p">[</span><span class="s2">&quot;MovieID&quot;</span><span class="p">])])</span>
 
-<span class="n">k_grid</span> <span class="o">=</span> <span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">80</span><span class="p">]</span>
+<span class="n">k_grid</span> <span class="o">=</span> <span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mi">120</span><span class="p">]</span>
 <span class="n">item_scores</span> <span class="o">=</span> <span class="p">[]</span>
 <span class="n">user_scores</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -16237,6 +16247,40 @@ Bias model (test): {&#39;RMSE&#39;: 0.9652078657563132, &#39;MAPE&#39;: 0.299914
 
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best item-based Pearson k: </span><span class="si">{</span><span class="n">best_k_item</span><span class="si">}</span><span class="s2">, test metrics: </span><span class="si">{</span><span class="n">item_test_metrics</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best user-based Cosine k: </span><span class="si">{</span><span class="n">best_k_user</span><span class="si">}</span><span class="s2">, test metrics: </span><span class="si">{</span><span class="n">user_test_metrics</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1"># Pearson diagnostics: overlap and shrinkage effects</span>
+<span class="n">tri_i</span><span class="p">,</span> <span class="n">tri_j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">item_corr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">overlap_vals</span> <span class="o">=</span> <span class="n">co_counts</span><span class="p">[</span><span class="n">tri_i</span><span class="p">,</span> <span class="n">tri_j</span><span class="p">]</span>
+<span class="n">raw_vals</span> <span class="o">=</span> <span class="n">item_corr_raw</span><span class="p">[</span><span class="n">tri_i</span><span class="p">,</span> <span class="n">tri_j</span><span class="p">]</span>
+<span class="n">shrunk_vals</span> <span class="o">=</span> <span class="n">item_corr</span><span class="p">[</span><span class="n">tri_i</span><span class="p">,</span> <span class="n">tri_j</span><span class="p">]</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Pearson diagnostics summary:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Median overlap across item pairs:&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">overlap_vals</span><span class="p">)))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Share of pairs with overlap &gt;= 20:&quot;</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="nb">float</span><span class="p">((</span><span class="n">overlap_vals</span> <span class="o">&gt;=</span> <span class="mi">20</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()),</span> <span class="mi">4</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Mean |raw corr|:&quot;</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">raw_vals</span><span class="p">))),</span> <span class="mi">4</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Mean |shrunk corr|:&quot;</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">shrunk_vals</span><span class="p">))),</span> <span class="mi">4</span><span class="p">))</span>
+
+<span class="n">valid</span> <span class="o">=</span> <span class="n">overlap_vals</span> <span class="o">&gt;=</span> <span class="mi">20</span>
+<span class="n">id_to_title_local</span> <span class="o">=</span> <span class="n">movies</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">&quot;MovieID&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;MovieID&quot;</span><span class="p">)[</span><span class="s2">&quot;Title&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="n">valid</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+    <span class="n">valid_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">valid</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">top_idx</span> <span class="o">=</span> <span class="n">valid_idx</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">shrunk_vals</span><span class="p">[</span><span class="n">valid_idx</span><span class="p">])[::</span><span class="o">-</span><span class="mi">1</span><span class="p">][:</span><span class="mi">10</span><span class="p">]]</span>
+    <span class="n">top_pairs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">top_idx</span><span class="p">:</span>
+        <span class="n">mid_1</span> <span class="o">=</span> <span class="n">movie_ids</span><span class="p">[</span><span class="n">tri_i</span><span class="p">[</span><span class="n">idx</span><span class="p">]]</span>
+        <span class="n">mid_2</span> <span class="o">=</span> <span class="n">movie_ids</span><span class="p">[</span><span class="n">tri_j</span><span class="p">[</span><span class="n">idx</span><span class="p">]]</span>
+        <span class="n">top_pairs</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">&quot;Movie1&quot;</span><span class="p">:</span> <span class="n">id_to_title_local</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">mid_1</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">mid_1</span><span class="p">)),</span>
+            <span class="s2">&quot;Movie2&quot;</span><span class="p">:</span> <span class="n">id_to_title_local</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">mid_2</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">mid_2</span><span class="p">)),</span>
+            <span class="s2">&quot;OverlapUsers&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">overlap_vals</span><span class="p">[</span><span class="n">idx</span><span class="p">]),</span>
+            <span class="s2">&quot;RawPearson&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">raw_vals</span><span class="p">[</span><span class="n">idx</span><span class="p">]),</span>
+            <span class="s2">&quot;ShrunkPearson&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">shrunk_vals</span><span class="p">[</span><span class="n">idx</span><span class="p">]),</span>
+        <span class="p">})</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Top high-confidence item correlations (overlap &gt;= 20):&quot;</span><span class="p">)</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">top_pairs</span><span class="p">))</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No item pairs met overlap &gt;= 20 threshold in current train matrix.&quot;</span><span class="p">)</span>
 </pre></div>
 
      </div>
@@ -16299,20 +16343,26 @@ R shape: (6040, 3704) Item corr: (3704, 3704) User cosine: (6040, 6040)
     <tr>
       <th>0</th>
       <td>20</td>
-      <td>1.726019</td>
-      <td>0.392207</td>
+      <td>1.719703</td>
+      <td>0.390199</td>
     </tr>
     <tr>
       <th>1</th>
       <td>40</td>
-      <td>1.855591</td>
-      <td>0.420459</td>
+      <td>1.842065</td>
+      <td>0.417400</td>
     </tr>
     <tr>
       <th>2</th>
       <td>80</td>
-      <td>1.954279</td>
-      <td>0.444193</td>
+      <td>1.935562</td>
+      <td>0.439979</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>120</td>
+      <td>1.974472</td>
+      <td>0.449712</td>
     </tr>
   </tbody>
 </table>
@@ -16360,6 +16410,12 @@ R shape: (6040, 3704) Item corr: (3704, 3704) User cosine: (6040, 6040)
       <td>0.312508</td>
     </tr>
     <tr>
+      <th>3</th>
+      <td>120</td>
+      <td>0.990205</td>
+      <td>0.313433</td>
+    </tr>
+    <tr>
       <th>1</th>
       <td>40</td>
       <td>0.990304</td>
@@ -16385,10 +16441,137 @@ R shape: (6040, 3704) Item corr: (3704, 3704) User cosine: (6040, 6040)
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre>Best item-based Pearson k: 20, test metrics: {&#39;RMSE&#39;: 1.7793672826000773, &#39;MAPE&#39;: 0.4000916203261543}
+<pre>Best item-based Pearson k: 20, test metrics: {&#39;RMSE&#39;: 1.7798298892085307, &#39;MAPE&#39;: 0.4000738881971182}
 Best user-based Cosine k: 80, test metrics: {&#39;RMSE&#39;: 1.0036411945109756, &#39;MAPE&#39;: 0.31216639197813173}
+Pearson diagnostics summary:
+Median overlap across item pairs: 6.0
+Share of pairs with overlap &gt;= 20: 0.2965
+Mean |raw corr|: 0.0237
+Mean |shrunk corr|: 0.009
+Top high-confidence item correlations (overlap &gt;= 20):
 </pre>
 </div>
+</div>
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+
+<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output " data-mime-type="text/html">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Movie1</th>
+      <th>Movie2</th>
+      <th>OverlapUsers</th>
+      <th>RawPearson</th>
+      <th>ShrunkPearson</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Police Academy 5: Assignment: Miami Beach (1988)</td>
+      <td>Police Academy 6: City Under Siege (1989)</td>
+      <td>111</td>
+      <td>0.706891</td>
+      <td>0.576948</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Puppet Master 4 (1993)</td>
+      <td>Puppet Master 5: The Final Chapter (1994)</td>
+      <td>48</td>
+      <td>0.849808</td>
+      <td>0.558778</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Nightmare on Elm Street 4: The Dream Master, A...</td>
+      <td>Nightmare on Elm Street 5: The Dream Child, A ...</td>
+      <td>160</td>
+      <td>0.631547</td>
+      <td>0.546203</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>Nightmare on Elm Street 3: Dream Warriors, A (...</td>
+      <td>Nightmare on Elm Street 4: The Dream Master, A...</td>
+      <td>191</td>
+      <td>0.597634</td>
+      <td>0.528463</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>Godfather, The (1972)</td>
+      <td>Godfather: Part II, The (1974)</td>
+      <td>155</td>
+      <td>0.613166</td>
+      <td>0.528004</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>Jean de Florette (1986)</td>
+      <td>Manon of the Spring (Manon des sources) (1986)</td>
+      <td>141</td>
+      <td>0.616756</td>
+      <td>0.523871</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>Fistful of Dollars, A (1964)</td>
+      <td>For a Few Dollars More (1965)</td>
+      <td>250</td>
+      <td>0.572157</td>
+      <td>0.520143</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>Police Academy 4: Citizens on Patrol (1987)</td>
+      <td>Police Academy 5: Assignment: Miami Beach (1988)</td>
+      <td>108</td>
+      <td>0.615823</td>
+      <td>0.500066</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>Police Academy 4: Citizens on Patrol (1987)</td>
+      <td>Police Academy 6: City Under Siege (1989)</td>
+      <td>108</td>
+      <td>0.614175</td>
+      <td>0.498728</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>Good, The Bad and The Ugly, The (1966)</td>
+      <td>Fistful of Dollars, A (1964)</td>
+      <td>178</td>
+      <td>0.549540</td>
+      <td>0.481862</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
 </div>
 
 </div>
@@ -16509,17 +16692,17 @@ Best user-based Cosine k: 80, test metrics: {&#39;RMSE&#39;: 1.0036411945109756,
     <tr>
       <th>0</th>
       <td>Ace Ventura: Pet Detective (1994)</td>
-      <td>0.189101</td>
+      <td>0.156271</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>Dumb &amp; Dumber (1994)</td>
-      <td>0.183473</td>
+      <td>Tommy Boy (1995)</td>
+      <td>0.156112</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>Tommy Boy (1995)</td>
-      <td>0.171723</td>
+      <td>Dumb &amp; Dumber (1994)</td>
+      <td>0.149243</td>
     </tr>
   </tbody>
 </table>
@@ -16576,61 +16759,61 @@ Best user-based Cosine k: 80, test metrics: {&#39;RMSE&#39;: 1.0036411945109756,
       <th>1042</th>
       <td>3022</td>
       <td>General, The (1927)</td>
-      <td>4.803465</td>
+      <td>4.861353</td>
     </tr>
     <tr>
-      <th>718</th>
-      <td>2081</td>
-      <td>Little Mermaid, The (1989)</td>
-      <td>4.599865</td>
-    </tr>
-    <tr>
-      <th>68</th>
-      <td>162</td>
-      <td>Crumb (1994)</td>
-      <td>4.536335</td>
+      <th>1148</th>
+      <td>3338</td>
+      <td>For All Mankind (1989)</td>
+      <td>4.818162</td>
     </tr>
     <tr>
       <th>1074</th>
       <td>3133</td>
       <td>Go West (1925)</td>
-      <td>4.374145</td>
+      <td>4.810607</td>
     </tr>
     <tr>
-      <th>715</th>
-      <td>2064</td>
-      <td>Roger &amp; Me (1989)</td>
-      <td>4.369655</td>
+      <th>260</th>
+      <td>669</td>
+      <td>Aparajito (1956)</td>
+      <td>4.809627</td>
     </tr>
     <tr>
-      <th>1046</th>
-      <td>3034</td>
-      <td>Robin Hood (1973)</td>
-      <td>4.215439</td>
+      <th>259</th>
+      <td>668</td>
+      <td>Pather Panchali (1955)</td>
+      <td>4.734362</td>
     </tr>
     <tr>
-      <th>723</th>
-      <td>2090</td>
-      <td>Rescuers, The (1977)</td>
-      <td>4.107502</td>
+      <th>1013</th>
+      <td>2946</td>
+      <td>Help! (1965)</td>
+      <td>4.658292</td>
     </tr>
     <tr>
-      <th>1172</th>
-      <td>3415</td>
-      <td>Mirror, The (Zerkalo) (1975)</td>
-      <td>4.017915</td>
+      <th>261</th>
+      <td>670</td>
+      <td>World of Apu, The (Apur Sansar) (1959)</td>
+      <td>4.572760</td>
     </tr>
     <tr>
-      <th>1374</th>
-      <td>3911</td>
-      <td>Best in Show (2000)</td>
-      <td>4.000176</td>
+      <th>286</th>
+      <td>722</td>
+      <td>Haunted World of Edward D. Wood Jr., The (1995)</td>
+      <td>4.565847</td>
     </tr>
     <tr>
-      <th>981</th>
-      <td>2843</td>
-      <td>Black Cat, White Cat (Crna macka, beli macor) ...</td>
-      <td>3.986258</td>
+      <th>718</th>
+      <td>2081</td>
+      <td>Little Mermaid, The (1989)</td>
+      <td>4.539420</td>
+    </tr>
+    <tr>
+      <th>413</th>
+      <td>1147</td>
+      <td>When We Were Kings (1996)</td>
+      <td>4.527898</td>
     </tr>
   </tbody>
 </table>
@@ -16643,6 +16826,28 @@ Best user-based Cosine k: 80, test metrics: {&#39;RMSE&#39;: 1.0036411945109756,
 
 </div>
 
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<h3 id="Pearson-Correlation-Analysis-Notes">Pearson Correlation Analysis Notes<a class="anchor-link" href="#Pearson-Correlation-Analysis-Notes">&#182;</a></h3><p>This section now includes overlap-aware Pearson diagnostics to avoid over-trusting high correlations from very small co-rating samples.</p>
+<p>What to review in outputs:</p>
+<ol>
+<li>Share of item pairs with overlap &gt;= 20 to understand confidence coverage.</li>
+<li>Difference between mean absolute raw Pearson and shrinkage-adjusted Pearson to quantify noise reduction.</li>
+<li>Top high-confidence correlated movie pairs with overlap counts and both raw and shrunk correlations.</li>
+</ol>
+<p>Interpretation guideline:</p>
+<ul>
+<li>Prefer pairs with both high shrunk correlation and healthy overlap, as they are more stable for production candidate generation.</li>
+</ul>
+
+</div>
+</div>
+</div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
@@ -16653,15 +16858,21 @@ Best user-based Cosine k: 80, test metrics: {&#39;RMSE&#39;: 1.0036411945109756,
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Matrix Factorization via Truncated SVD (validation-tuned)</span>
 <span class="n">mask_obs</span> <span class="o">=</span> <span class="p">(</span><span class="n">R_dense</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
-<span class="n">user_mean_train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask_obs</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">R_dense</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">mask_obs</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span> <span class="n">global_mean</span><span class="p">)</span>
+<span class="n">base_user_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+    <span class="n">mask_obs</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">R_dense</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">mask_obs</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span>
+    <span class="n">global_mean</span>
+<span class="p">)</span>
 
-<span class="c1"># Fill missing interactions with user mean, then center by user mean</span>
-<span class="n">R_filled</span> <span class="o">=</span> <span class="n">R_dense</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">R_filled</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
-    <span class="n">miss</span> <span class="o">=</span> <span class="n">R_filled</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-    <span class="k">if</span> <span class="n">miss</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-        <span class="n">R_filled</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">miss</span><span class="p">]</span> <span class="o">=</span> <span class="n">user_mean_train</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-<span class="n">R_center</span> <span class="o">=</span> <span class="n">R_filled</span> <span class="o">-</span> <span class="n">user_mean_train</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">build_centered_matrix</span><span class="p">(</span><span class="n">alpha</span><span class="p">):</span>
+    <span class="n">blended_user_mean</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">base_user_mean</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">global_mean</span>
+    <span class="n">R_filled</span> <span class="o">=</span> <span class="n">R_dense</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">R_filled</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">miss</span> <span class="o">=</span> <span class="n">R_filled</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">miss</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">R_filled</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">miss</span><span class="p">]</span> <span class="o">=</span> <span class="n">blended_user_mean</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="n">R_center</span> <span class="o">=</span> <span class="n">R_filled</span> <span class="o">-</span> <span class="n">blended_user_mean</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">R_center</span><span class="p">,</span> <span class="n">blended_user_mean</span>
 
 <span class="k">def</span> <span class="nf">fit_svd_predict</span><span class="p">(</span><span class="n">centered_matrix</span><span class="p">,</span> <span class="n">n_components</span><span class="p">):</span>
     <span class="n">svd</span> <span class="o">=</span> <span class="n">TruncatedSVD</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="n">n_components</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">RANDOM_STATE</span><span class="p">)</span>
@@ -16682,31 +16893,59 @@ Best user-based Cosine k: 80, test metrics: {&#39;RMSE&#39;: 1.0036411945109756,
         <span class="n">preds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">clip_rating</span><span class="p">(</span><span class="n">p</span><span class="p">)))</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">preds</span><span class="p">)</span>
 
-<span class="n">svd_grid</span> <span class="o">=</span> <span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">80</span><span class="p">]</span>
+<span class="n">svd_grid</span> <span class="o">=</span> <span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">160</span><span class="p">]</span>
+<span class="n">alpha_grid</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.7</span><span class="p">,</span> <span class="mf">0.85</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]</span>
 <span class="n">svd_scores</span> <span class="o">=</span> <span class="p">[]</span>
 <span class="n">best_svd</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="n">best_svd_rmse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
 
-<span class="k">for</span> <span class="n">n_comp</span> <span class="ow">in</span> <span class="n">svd_grid</span><span class="p">:</span>
-    <span class="n">svd_model</span><span class="p">,</span> <span class="n">uf</span><span class="p">,</span> <span class="n">itf</span> <span class="o">=</span> <span class="n">fit_svd_predict</span><span class="p">(</span><span class="n">R_center</span><span class="p">,</span> <span class="n">n_comp</span><span class="p">)</span>
-    <span class="n">v</span> <span class="o">=</span> <span class="n">val_df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="n">v</span><span class="p">[</span><span class="s2">&quot;pred&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">predict_svd</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">uf</span><span class="p">,</span> <span class="n">itf</span><span class="p">,</span> <span class="n">user_mean_train</span><span class="p">)</span>
-    <span class="n">score</span> <span class="o">=</span> <span class="n">evaluate_predictions</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-    <span class="n">svd_scores</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;n_factors&quot;</span><span class="p">:</span> <span class="n">n_comp</span><span class="p">,</span> <span class="o">**</span><span class="n">score</span><span class="p">,</span> <span class="s2">&quot;explained_var&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">svd_model</span><span class="o">.</span><span class="n">explained_variance_ratio_</span><span class="o">.</span><span class="n">sum</span><span class="p">())})</span>
-    <span class="k">if</span> <span class="n">score</span><span class="p">[</span><span class="s2">&quot;RMSE&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">best_svd_rmse</span><span class="p">:</span>
-        <span class="n">best_svd_rmse</span> <span class="o">=</span> <span class="n">score</span><span class="p">[</span><span class="s2">&quot;RMSE&quot;</span><span class="p">]</span>
-        <span class="n">best_svd</span> <span class="o">=</span> <span class="p">(</span><span class="n">svd_model</span><span class="p">,</span> <span class="n">uf</span><span class="p">,</span> <span class="n">itf</span><span class="p">,</span> <span class="n">n_comp</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">alpha</span> <span class="ow">in</span> <span class="n">alpha_grid</span><span class="p">:</span>
+    <span class="n">R_center_tmp</span><span class="p">,</span> <span class="n">user_mean_tmp</span> <span class="o">=</span> <span class="n">build_centered_matrix</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">n_comp</span> <span class="ow">in</span> <span class="n">svd_grid</span><span class="p">:</span>
+        <span class="n">svd_model</span><span class="p">,</span> <span class="n">uf</span><span class="p">,</span> <span class="n">itf</span> <span class="o">=</span> <span class="n">fit_svd_predict</span><span class="p">(</span><span class="n">R_center_tmp</span><span class="p">,</span> <span class="n">n_comp</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">val_df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">v</span><span class="p">[</span><span class="s2">&quot;pred&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">predict_svd</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">uf</span><span class="p">,</span> <span class="n">itf</span><span class="p">,</span> <span class="n">user_mean_tmp</span><span class="p">)</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="n">evaluate_predictions</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="n">svd_scores</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">&quot;alpha&quot;</span><span class="p">:</span> <span class="n">alpha</span><span class="p">,</span>
+            <span class="s2">&quot;n_factors&quot;</span><span class="p">:</span> <span class="n">n_comp</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">score</span><span class="p">,</span>
+            <span class="s2">&quot;explained_var&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">svd_model</span><span class="o">.</span><span class="n">explained_variance_ratio_</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+        <span class="p">})</span>
+        <span class="k">if</span> <span class="n">score</span><span class="p">[</span><span class="s2">&quot;RMSE&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">best_svd_rmse</span><span class="p">:</span>
+            <span class="n">best_svd_rmse</span> <span class="o">=</span> <span class="n">score</span><span class="p">[</span><span class="s2">&quot;RMSE&quot;</span><span class="p">]</span>
+            <span class="n">best_svd</span> <span class="o">=</span> <span class="p">(</span><span class="n">svd_model</span><span class="p">,</span> <span class="n">uf</span><span class="p">,</span> <span class="n">itf</span><span class="p">,</span> <span class="n">n_comp</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">R_center_tmp</span><span class="p">,</span> <span class="n">user_mean_tmp</span><span class="p">)</span>
 
 <span class="n">svd_score_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">svd_scores</span><span class="p">)</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;RMSE&quot;</span><span class="p">)</span>
-<span class="n">display</span><span class="p">(</span><span class="n">svd_score_df</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">svd_score_df</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
 
-<span class="n">svd_model_b</span><span class="p">,</span> <span class="n">uf_b</span><span class="p">,</span> <span class="n">itf_b</span><span class="p">,</span> <span class="n">best_n</span> <span class="o">=</span> <span class="n">best_svd</span>
+<span class="n">svd_model_b</span><span class="p">,</span> <span class="n">uf_b</span><span class="p">,</span> <span class="n">itf_b</span><span class="p">,</span> <span class="n">best_n</span><span class="p">,</span> <span class="n">best_alpha</span><span class="p">,</span> <span class="n">R_center</span><span class="p">,</span> <span class="n">user_mean_train</span> <span class="o">=</span> <span class="n">best_svd</span>
 <span class="n">test_svd</span> <span class="o">=</span> <span class="n">test_df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 <span class="n">test_svd</span><span class="p">[</span><span class="s2">&quot;pred&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">predict_svd</span><span class="p">(</span><span class="n">test_svd</span><span class="p">,</span> <span class="n">uf_b</span><span class="p">,</span> <span class="n">itf_b</span><span class="p">,</span> <span class="n">user_mean_train</span><span class="p">)</span>
 <span class="n">svd_test_metrics</span> <span class="o">=</span> <span class="n">evaluate_predictions</span><span class="p">(</span><span class="n">test_svd</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best SVD factors: </span><span class="si">{</span><span class="n">best_n</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best SVD alpha (user/global blend): </span><span class="si">{</span><span class="n">best_alpha</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;SVD Matrix Factorization (test):&quot;</span><span class="p">,</span> <span class="n">svd_test_metrics</span><span class="p">)</span>
+
+<span class="c1"># Latent-factor interpretation: highest loading movies per factor</span>
+<span class="n">id_to_title_local</span> <span class="o">=</span> <span class="n">movies</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">&quot;MovieID&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;MovieID&quot;</span><span class="p">)[</span><span class="s2">&quot;Title&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+<span class="n">latent_rows</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">n_latent_to_show</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">best_n</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_latent_to_show</span><span class="p">):</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">itf_b</span><span class="p">[:,</span> <span class="n">f</span><span class="p">]</span>
+    <span class="n">pos_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">w</span><span class="p">)[</span><span class="o">-</span><span class="mi">5</span><span class="p">:][::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">neg_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">w</span><span class="p">)[:</span><span class="mi">5</span><span class="p">]</span>
+    <span class="n">latent_rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+        <span class="s2">&quot;Factor&quot;</span><span class="p">:</span> <span class="n">f</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">&quot;TopPositiveMovies&quot;</span><span class="p">:</span> <span class="s2">&quot; | &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">id_to_title_local</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">movie_ids</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">str</span><span class="p">(</span><span class="n">movie_ids</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">pos_idx</span><span class="p">]),</span>
+        <span class="s2">&quot;TopNegativeMovies&quot;</span><span class="p">:</span> <span class="s2">&quot; | &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">id_to_title_local</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">movie_ids</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">str</span><span class="p">(</span><span class="n">movie_ids</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">neg_idx</span><span class="p">]),</span>
+    <span class="p">})</span>
+
+<span class="n">latent_factor_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">latent_rows</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Latent-factor interpretation (top loadings):&quot;</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">latent_factor_df</span><span class="p">)</span>
 </pre></div>
 
      </div>
@@ -16747,6 +16986,7 @@ Best user-based Cosine k: 80, test metrics: {&#39;RMSE&#39;: 1.0036411945109756,
   <thead>
     <tr style="text-align: right;">
       <th></th>
+      <th>alpha</th>
       <th>n_factors</th>
       <th>RMSE</th>
       <th>MAPE</th>
@@ -16755,32 +16995,100 @@ Best user-based Cosine k: 80, test metrics: {&#39;RMSE&#39;: 1.0036411945109756,
   </thead>
   <tbody>
     <tr>
+      <th>8</th>
+      <td>0.85</td>
+      <td>60</td>
+      <td>1.037776</td>
+      <td>0.356936</td>
+      <td>0.241130</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>0.85</td>
+      <td>40</td>
+      <td>1.037854</td>
+      <td>0.357526</td>
+      <td>0.198777</td>
+    </tr>
+    <tr>
       <th>2</th>
+      <td>0.70</td>
+      <td>60</td>
+      <td>1.038994</td>
+      <td>0.358959</td>
+      <td>0.241844</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>0.85</td>
+      <td>20</td>
+      <td>1.039093</td>
+      <td>0.358581</td>
+      <td>0.147580</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>0.70</td>
+      <td>40</td>
+      <td>1.039273</td>
+      <td>0.359739</td>
+      <td>0.199405</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>1.00</td>
       <td>60</td>
       <td>1.040301</td>
       <td>0.355804</td>
       <td>0.242010</td>
     </tr>
     <tr>
-      <th>1</th>
+      <th>13</th>
+      <td>1.00</td>
       <td>40</td>
       <td>1.040418</td>
       <td>0.356373</td>
       <td>0.199680</td>
     </tr>
     <tr>
+      <th>9</th>
+      <td>0.85</td>
+      <td>80</td>
+      <td>1.040570</td>
+      <td>0.357367</td>
+      <td>0.278546</td>
+    </tr>
+    <tr>
       <th>0</th>
+      <td>0.70</td>
+      <td>20</td>
+      <td>1.040618</td>
+      <td>0.360705</td>
+      <td>0.147749</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>0.85</td>
+      <td>120</td>
+      <td>1.040903</td>
+      <td>0.357328</td>
+      <td>0.344243</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>1.00</td>
       <td>20</td>
       <td>1.041390</td>
       <td>0.357288</td>
       <td>0.148623</td>
     </tr>
     <tr>
-      <th>3</th>
-      <td>80</td>
-      <td>1.042847</td>
-      <td>0.356093</td>
-      <td>0.279387</td>
+      <th>4</th>
+      <td>0.70</td>
+      <td>120</td>
+      <td>1.041458</td>
+      <td>0.359205</td>
+      <td>0.344930</td>
     </tr>
   </tbody>
 </table>
@@ -16797,15 +17105,99 @@ Best user-based Cosine k: 80, test metrics: {&#39;RMSE&#39;: 1.0036411945109756,
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
 <pre>Best SVD factors: 60
-SVD Matrix Factorization (test): {&#39;RMSE&#39;: 1.0673687686317188, &#39;MAPE&#39;: 0.36422821258778376}
+Best SVD alpha (user/global blend): 0.85
+SVD Matrix Factorization (test): {&#39;RMSE&#39;: 1.0629461993365337, &#39;MAPE&#39;: 0.36472529252653096}
+Latent-factor interpretation (top loadings):
 </pre>
 </div>
 </div>
 
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+
+<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output " data-mime-type="text/html">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Factor</th>
+      <th>TopPositiveMovies</th>
+      <th>TopNegativeMovies</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1</td>
+      <td>Star Wars: Episode IV - A New Hope (1977) | Ra...</td>
+      <td>Wild Wild West (1999) | Batman &amp; Robin (1997) ...</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2</td>
+      <td>Jurassic Park (1993) | Independence Day (ID4) ...</td>
+      <td>Fargo (1996) | Dr. Strangelove or: How I Learn...</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>3</td>
+      <td>American Beauty (1999) | Fight Club (1999) | P...</td>
+      <td>Casablanca (1942) | Wizard of Oz, The (1939) |...</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>4</td>
+      <td>Shawshank Redemption, The (1994) | Schindler's...</td>
+      <td>Aliens (1986) | Alien (1979) | Robocop (1987) ...</td>
+    </tr>
+  </tbody>
+</table>
+</div>
 </div>
 
 </div>
 
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<h3 id="Matrix-Factorization-Analysis-Notes">Matrix Factorization Analysis Notes<a class="anchor-link" href="#Matrix-Factorization-Analysis-Notes">&#182;</a></h3><p>This section now performs broader hyperparameter tuning across latent factor count and user-mean/global-mean blending.
+It also surfaces factor-level interpretation using the highest positive and negative loading movies per latent dimension.</p>
+<p>What to review in outputs:</p>
+<ol>
+<li>Top rows of the SVD tuning table to identify sensitivity to n_factors and alpha.</li>
+<li>Best alpha value to understand how strongly personalization should rely on user mean versus global mean.</li>
+<li>Latent-factor movie loading table to infer whether factors represent coherent taste themes.</li>
+</ol>
+
+</div>
+</div>
+</div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
@@ -16873,8 +17265,8 @@ SVD Matrix Factorization (test): {&#39;RMSE&#39;: 1.0673687686317188, &#39;MAPE&
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre>SVD validation RMSE by seed: {11: np.float64(1.0398), 21: np.float64(1.0407), 42: np.float64(1.0403), 84: np.float64(1.0394)}
-RMSE std (stability indicator): 0.00049
+<pre>SVD validation RMSE by seed: {11: np.float64(1.0375), 21: np.float64(1.0382), 42: np.float64(1.0378), 84: np.float64(1.0371)}
+RMSE std (stability indicator): 0.0004
 </pre>
 </div>
 </div>
@@ -16926,8 +17318,8 @@ RMSE std (stability indicator): 0.00049
     <tr>
       <th>0</th>
       <td>SVD (best)</td>
-      <td>1.067369</td>
-      <td>0.364228</td>
+      <td>1.062946</td>
+      <td>0.364725</td>
     </tr>
   </tbody>
 </table>
@@ -17034,8 +17426,8 @@ RMSE std (stability indicator): 0.00049
     <tr>
       <th>4</th>
       <td>Matrix Factorization SVD (factors=60)</td>
-      <td>1.067369</td>
-      <td>0.364228</td>
+      <td>1.062946</td>
+      <td>0.364725</td>
     </tr>
     <tr>
       <th>0</th>
@@ -17046,8 +17438,8 @@ RMSE std (stability indicator): 0.00049
     <tr>
       <th>2</th>
       <td>Item-based Pearson (k=20)</td>
-      <td>1.779367</td>
-      <td>0.400092</td>
+      <td>1.779830</td>
+      <td>0.400074</td>
     </tr>
   </tbody>
 </table>
@@ -17181,7 +17573,7 @@ RMSE std (stability indicator): 0.00049
     <tr>
       <th>5</th>
       <td>6</td>
-      <td>Ace Ventura: Pet Detective (1994); Dumb &amp; Dumb...</td>
+      <td>Ace Ventura: Pet Detective (1994); Tommy Boy (...</td>
     </tr>
     <tr>
       <th>6</th>
@@ -17196,7 +17588,7 @@ RMSE std (stability indicator): 0.00049
     <tr>
       <th>8</th>
       <td>9</td>
-      <td>RMSE=1.0674, MAPE=0.3642</td>
+      <td>RMSE=1.0629, MAPE=0.3647</td>
     </tr>
     <tr>
       <th>9</th>

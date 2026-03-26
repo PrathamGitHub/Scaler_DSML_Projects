@@ -116,6 +116,7 @@ Hard Requirements:
 8. Add visualizations that support decisions (not decorative charts).
 9. End with actionable recommendations and trade-offs.
 10. Include a concise "executive summary" suitable for LinkedIn.
+11. Incase of deep learning models: perfer pytorch family over tensorflow. Make use of all the CPU core and GPU. Store the trained model for prediction.
 
 Execution Quality Constraints:
 
@@ -145,7 +146,7 @@ Deliverables:
 
 ### After first run of all cells
 
-- Summarise the cell outputs or chats where needed.
+- Summarise the cell outputs or chats where needed with markdown.
 - Update the summary and insights after the first run to reflect the results of the cell.
 - Remove question-answer patterns, present as business insights.
 
