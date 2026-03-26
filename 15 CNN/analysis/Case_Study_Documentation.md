@@ -116,3 +116,84 @@ Developed an end-to-end computer vision case study for Company A to classify ima
 ### Optional Short Description
 
 Built and validated a PyTorch image classifier with business-grade evaluation, interpretability, and monitoring design for automated produce sorting.
+
+## 7) Runtime Hardware Inspection and Performance Optimization Notes
+
+### OS-Level Hardware Inspection (This Machine)
+
+Inspection was run directly from Windows PowerShell using WMI/CIM queries.
+
+- OS: Microsoft Windows 11 Pro (64-bit), version 10.0.22631
+- CPU: Intel Xeon E5-2680 v4 @ 2.40 GHz
+- Cores/Threads: 14 physical cores, 28 logical processors
+- RAM: 64 GB
+- GPU(s):
+   - NVIDIA Quadro K2200 (4 GB VRAM)
+   - Microsoft Remote Display Adapter
+
+Important runtime note:
+- `nvidia-smi` is not available in PATH on this machine.
+- In the earlier long run, the notebook output showed `torch_version: 2.11.0+cpu` and `device: cpu`, confirming GPU was not being used.
+
+### Code Improvements Applied in `CNN_Classification.ipynb`
+
+The following performance-focused changes were implemented to reduce runtime and better utilize available hardware:
+
+1. Device/runtime setup improvements
+- Added richer runtime diagnostics (device, workers, GPU name, GPU memory).
+- Set throughput-oriented backend config:
+   - `torch.backends.cudnn.deterministic = False`
+   - `torch.backends.cudnn.benchmark = True`
+   - `torch.set_float32_matmul_precision('high')` when supported.
+
+2. Data pipeline and DataLoader tuning
+- Replaced full-core worker usage with bounded workers:
+   - `DATALOADER_WORKERS = min(8, max(2, logical_cpus // 2))`
+- Added DataLoader optimizations:
+   - `persistent_workers=True`
+   - `prefetch_factor=2`
+   - `pin_memory=True` on CUDA
+- Added GPU-aware batch size policy:
+   - CUDA with >=8 GB VRAM: batch size 64
+   - CUDA with <8 GB VRAM: batch size 32
+   - CPU fallback: batch size 24
+
+3. Dataset fetch overhead reduction
+- Precomputed encoded labels once in dataset init (instead of per-sample transform in `__getitem__`).
+- Switched to context-managed image open (`with Image.open(...)`) for cleaner file handling.
+
+4. Training loop acceleration
+- Added mixed precision (AMP) for CUDA:
+   - `torch.autocast` in train and eval forward passes
+   - `torch.amp.GradScaler` in training steps
+- Optimizer now tracks only trainable parameters (`requires_grad=True`), reducing unnecessary optimizer bookkeeping.
+
+### Estimated Training Time After Improvements
+
+Given this project size (~2.5k train images, ResNet18 transfer + small scratch CNN):
+
+- If PyTorch is still CPU-only:
+   - Approximate total training for deep-learning blocks: 60 to 180 minutes
+   - Full notebook including EDA/plots: 90 to 240 minutes
+
+- If CUDA-enabled PyTorch is installed and GPU is used:
+   - On Quadro K2200 (4 GB), expected deep-learning training: 15 to 45 minutes
+   - Full notebook including EDA/plots: 25 to 70 minutes
+
+Why this is not single-digit minutes on this GPU:
+- Quadro K2200 is an older, low-VRAM GPU; it still helps vs CPU, but not at modern RTX throughput levels.
+
+### Recommended Environment Verification Before Next Run
+
+Run this once before training:
+- `import torch`
+- `print(torch.__version__)`
+- `print(torch.cuda.is_available())`
+- `print(torch.version.cuda)`
+- `print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')`
+
+Expected for GPU training:
+- `torch.cuda.is_available()` should be `True`
+- `torch.__version__` should be a CUDA build, not `+cpu`
+
+If `False` or `+cpu` appears, install a CUDA-enabled PyTorch build and rerun.
